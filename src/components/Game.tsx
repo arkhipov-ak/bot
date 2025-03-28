@@ -150,7 +150,7 @@ export default function Game() {
       return;
     }
 
-    if (typeof DeviceOrientationEvent !== 'undefined' && 
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
         // @ts-ignore: Typescript doesn't know about requestPermission
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
@@ -367,17 +367,17 @@ export default function Game() {
   
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      {!gameOver && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-center px-4 py-2 bg-black bg-opacity-50 rounded">
-          {isMobile ? (
-            hasOrientationPermission ? 
-              "Tilt device to move, tap to shoot" :
-              "Touch and drag to move, tap to shoot"
-          ) : (
-            "Use Arrow Keys or A/D to move, Spacebar to shoot"
-          )}
-        </div>
-      )}
+      {/* {!gameOver && ( */}
+      {/*   <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-center px-4 py-2 bg-black bg-opacity-50 rounded"> */}
+      {/*     {isMobile ? ( */}
+      {/*       hasOrientationPermission ?  */}
+      {/*         "Tilt device to move, tap to shoot" : */}
+      {/*         "Touch and drag to move, tap to shoot" */}
+      {/*     ) : ( */}
+      {/*       "Use Arrow Keys or A/D to move, Spacebar to shoot" */}
+      {/*     )} */}
+      {/*   </div> */}
+      {/* )} */}
       
       <canvas
         ref={canvasRef}
