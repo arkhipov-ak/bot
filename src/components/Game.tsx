@@ -388,7 +388,7 @@ export default function Game() {
         className="w-full h-full"
       />
       
-      <div className="padding-40px left-4 text-white text-4xl font-bold">
+      <div className="padding-20 left-4 text-white text-4xl font-bold">
         {score}
       </div>
       
