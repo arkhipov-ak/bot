@@ -388,7 +388,7 @@ export default function Game() {
         className="w-full h-full"
       />
       
-      <div className="absolute top-28px left-4 text-white text-4xl font-bold">
+      <div className="absolute top-20px left-4 text-white text-4xl font-bold">
         {score}
       </div>
       
