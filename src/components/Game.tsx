@@ -379,7 +379,7 @@ export default function Game() {
         className="w-full h-full"
       />
       
-      <div className="absolute top-16 left-10 text-white text-4xl font-bold">
+      <div className="absolute top-16 left-[50%] text-white text-4xl font-bold">
         {score}
       </div>
       
