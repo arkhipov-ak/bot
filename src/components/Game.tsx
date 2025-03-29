@@ -13,17 +13,16 @@ interface Projectile {
   speed: number;
 }
 
-const AIRPLANE_SIZE = 30;
-const OBSTACLE_SIZE = 30;
-const GAME_SPEED = 5;
-const OBSTACLE_SPAWN_INTERVAL = 1500;
-const PROJECTILE_SPEED = 7;
-const PROJECTILE_SIZE = 5;
-const TILT_SENSITIVITY = 2;
+const AIRPLANE_SIZE = 30; // размер препятсивй
+const OBSTACLE_SIZE = 30; // размер обьектов
+const GAME_SPEED = 5; // скорость движения препятствий
+const OBSTACLE_SPAWN_INTERVAL = 1500; // интервал между появлением новых препятствий
+const PROJECTILE_SPEED = 7; // скорость снаряда
+const PROJECTILE_SIZE = 5; // размер снаряда
+const TILT_SENSITIVITY = 1; // чувствительность
 const KEYBOARD_SPEED = 5;
-const MAX_OBSTACLES = 10;
+const MAX_OBSTACLES = 10; // максимальное кол-во препятствий на экране
 
-// New constants for obstacle patterns
 const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 2;
 const PATTERN_TYPES = ['single', 'cluster', 'diagonal', 'random'] as const;
 
@@ -42,7 +41,7 @@ export default function Game() {
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
 
-  // Helper function to check if a position is too close to existing obstacles
+  // Проверка, находится ли самолет близко к препятствиям
   const isTooCloseToObstacles = (x: number, y: number, existingObstacles: GameObject[]) => {
     return existingObstacles.some(obstacle => {
       const dx = obstacle.x - x;
@@ -51,7 +50,6 @@ export default function Game() {
     });
   };
 
-  // Function to generate random obstacle patterns
   const generateObstaclePattern = (existingObstacles: GameObject[]) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
@@ -63,8 +61,7 @@ export default function Game() {
     const safeY = () => -OBSTACLE_SIZE - Math.random() * OBSTACLE_SIZE * 2;
 
     switch (patternType) {
-      case 'single':
-        // Single obstacle
+      case 'single': // одно препятствие в случайной позиции
         newObstacles.push({
           x: safeX(),
           y: safeY(),
@@ -73,8 +70,7 @@ export default function Game() {
         });
         break;
 
-      case 'cluster':
-        // Small cluster of 2-3 obstacles
+      case 'cluster': // препятствия вокруг центра
         const clusterCenter = { x: safeX(), y: safeY() };
         const clusterSize = 2 + Math.floor(Math.random() * 2);
         
@@ -95,8 +91,7 @@ export default function Game() {
         }
         break;
 
-      case 'diagonal':
-        // Diagonal line of 2-3 obstacles
+      case 'diagonal': // создается ряд препятствий
         const startX = safeX();
         const startY = safeY();
         const direction = Math.random() > 0.5 ? 1 : -1;
@@ -114,8 +109,7 @@ export default function Game() {
         }
         break;
 
-      case 'random':
-        // Completely random position
+      case 'random': //  создается одно препятствие, но не ближе к существующим
         const x = safeX();
         const y = safeY();
         if (!isTooCloseToObstacles(x, y, existingObstacles)) {
@@ -132,7 +126,6 @@ export default function Game() {
     return newObstacles;
   };
 
-  // Detect if device is mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
@@ -142,8 +135,7 @@ export default function Game() {
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  // Request device orientation permission for mobile
+  
   const requestOrientationPermission = async () => {
     if (!isMobile) {
       setHasOrientationPermission(false);
@@ -151,7 +143,7 @@ export default function Game() {
     }
 
     if (typeof DeviceOrientationEvent !== 'undefined' &&
-        // @ts-ignore: Typescript doesn't know about requestPermission
+        // @ts-ignore:
         typeof DeviceOrientationEvent.requestPermission === 'function') {
       try {
         // @ts-ignore
@@ -165,8 +157,7 @@ export default function Game() {
       setHasOrientationPermission(true);
     }
   };
-
-  // Handle device orientation for mobile
+  
   useEffect(() => {
     if (!isMobile || !hasOrientationPermission || gameOver) return;
 
@@ -224,7 +215,7 @@ export default function Game() {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [isMobile, gameOver, airplane.x, airplane.y]);
   
-  // Game loop
+  // Game
   useEffect(() => {
     if (gameOver) return;
     
