@@ -158,10 +158,13 @@ export default function Game() {
     }
   };
   
-  useEffect(() => {
-    if (!isMobile || !hasOrientationPermission || gameOver) return;
+ useEffect(() => {
+  if (!isMobile || gameOver) return;
 
-    const handleOrientation = (event: DeviceOrientationEvent) => {
+  // Проверяем, запущено ли приложение в Telegram WebApp
+  if (window.Telegram && window.Telegram.WebApp) {
+    // Обработчик события наклона, получаем gamma из tg API
+    const handleTgOrientation = (event: { gamma: number | null }) => {
       if (event.gamma === null) return;
       
       const tilt = event.gamma;
@@ -177,9 +180,15 @@ export default function Game() {
       }));
     };
 
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
-  }, [isMobile, hasOrientationPermission, gameOver]);
+    // Подписываемся на событие, передаваемое tg API
+    window.Telegram.WebApp.onEvent('deviceOrientation', handleTgOrientation);
+
+    return () => {
+      window.Telegram.WebApp.offEvent('deviceOrientation', handleTgOrientation);
+    };
+  }
+}, [isMobile, gameOver]);
+
 
   // Handle keyboard controls for desktop
   useEffect(() => {
