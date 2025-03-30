@@ -13,15 +13,15 @@ interface Projectile {
   speed: number;
 }
 
-const AIRPLANE_SIZE = 50; // размер препятсивй
-const OBSTACLE_SIZE = 50; // размер обьектов
-const GAME_SPEED = 5; // скорость движения препятствий
-const OBSTACLE_SPAWN_INTERVAL = 1500; // интервал между появлением новых препятствий
-const PROJECTILE_SPEED = 7; // скорость снаряда
-const PROJECTILE_SIZE = 5; // размер снаряда
-const TILT_SENSITIVITY = 1; // чувствительность
+const AIRPLANE_SIZE = 30;
+const OBSTACLE_SIZE = 50;
+const GAME_SPEED = 5;
+const OBSTACLE_SPAWN_INTERVAL = 1500;
+const PROJECTILE_SPEED = 7;
+const PROJECTILE_SIZE = 5;
+const TILT_SENSITIVITY = 1;
 const KEYBOARD_SPEED = 5;
-const MAX_OBSTACLES = 10; // максимальное кол-во препятствий на экране
+const MAX_OBSTACLES = 10;
 
 const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 2;
 const PATTERN_TYPES = ['single', 'cluster', 'diagonal', 'random'] as const;
@@ -41,7 +41,6 @@ export default function Game() {
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
 
-  // Проверка, находится ли самолет близко к препятствиям
   const isTooCloseToObstacles = (x: number, y: number, existingObstacles: GameObject[]) => {
     return existingObstacles.some(obstacle => {
       const dx = obstacle.x - x;
@@ -61,7 +60,7 @@ export default function Game() {
     const safeY = () => -OBSTACLE_SIZE - Math.random() * OBSTACLE_SIZE * 2;
 
     switch (patternType) {
-      case 'single': // одно препятствие в случайной позиции
+      case 'single':
         newObstacles.push({
           x: safeX(),
           y: safeY(),
@@ -70,7 +69,7 @@ export default function Game() {
         });
         break;
 
-      case 'cluster': // препятствия вокруг центра
+      case 'cluster':
         const clusterCenter = { x: safeX(), y: safeY() };
         const clusterSize = 2 + Math.floor(Math.random() * 2);
         
@@ -91,7 +90,7 @@ export default function Game() {
         }
         break;
 
-      case 'diagonal': // создается ряд препятствий
+      case 'diagonal':
         const startX = safeX();
         const startY = safeY();
         const direction = Math.random() > 0.5 ? 1 : -1;
@@ -109,7 +108,7 @@ export default function Game() {
         }
         break;
 
-      case 'random': //  создается одно препятствие, но не ближе к существующим
+      case 'random':
         const x = safeX();
         const y = safeY();
         if (!isTooCloseToObstacles(x, y, existingObstacles)) {
@@ -181,7 +180,6 @@ export default function Game() {
     return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [isMobile, hasOrientationPermission, gameOver]);
 
-  // Handle keyboard controls for desktop
   useEffect(() => {
     if (isMobile || gameOver) return;
 
@@ -215,7 +213,6 @@ export default function Game() {
     return () => window.removeEventListener('keydown', handleKeyboard);
   }, [isMobile, gameOver, airplane.x, airplane.y]);
   
-  // Game
   useEffect(() => {
     if (gameOver) return;
     
@@ -245,61 +242,84 @@ export default function Game() {
       ctx.fill();
       ctx.restore();
       
-      // Update and draw projectiles
-      const updatedProjectiles = projectiles.filter(projectile => {
+      // Create sets to track which projectiles and obstacles to remove
+      const projectilesToRemove = new Set<number>();
+      const obstaclesToRemove = new Set<number>();
+
+      // Draw and update projectiles
+      projectiles.forEach((projectile, pIndex) => {
         projectile.y -= projectile.speed;
         
-        ctx.fillStyle = '#FFD700';
-        ctx.beginPath();
-        ctx.arc(projectile.x, projectile.y, PROJECTILE_SIZE, 0, Math.PI * 2);
-        ctx.fill();
+        // Remove projectiles that are off screen
+        if (projectile.y < 0) {
+          projectilesToRemove.add(pIndex);
+          return;
+        }
         
-        return projectile.y > 0;
-      });
-      
-      // Update and draw obstacles
-      const newObstacles = obstacles.filter(obstacle => {
-        const isHit = updatedProjectiles.some(projectile => {
+        // Check for collisions with obstacles
+        obstacles.forEach((obstacle, oIndex) => {
           const dx = projectile.x - obstacle.x;
           const dy = projectile.y - obstacle.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
-          return distance < (PROJECTILE_SIZE + OBSTACLE_SIZE / 2);
+          
+          if (distance < (PROJECTILE_SIZE + OBSTACLE_SIZE / 2)) {
+            projectilesToRemove.add(pIndex);
+            obstaclesToRemove.add(oIndex);
+            setScore(prev => prev + 20);
+          }
         });
         
-        if (isHit) {
-          setScore(prev => prev + 20);
-          return false;
+        // Draw projectile if it hasn't been marked for removal
+        if (!projectilesToRemove.has(pIndex)) {
+          ctx.fillStyle = '#FFD700';
+          ctx.beginPath();
+          ctx.arc(projectile.x, projectile.y, PROJECTILE_SIZE, 0, Math.PI * 2);
+          ctx.fill();
         }
+      });
+      
+      // Update and draw obstacles
+      obstacles.forEach((obstacle, index) => {
+        if (obstaclesToRemove.has(index)) return;
         
         obstacle.y += GAME_SPEED;
         
-        ctx.fillStyle = '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(obstacle.x, obstacle.y, OBSTACLE_SIZE / 2, 0, Math.PI * 2);
-        ctx.fill();
+        // Remove obstacles that are off screen
+        if (obstacle.y > canvas.height + OBSTACLE_SIZE) {
+          obstaclesToRemove.add(index);
+          return;
+        }
         
+        // Check for collision with airplane
         const dx = airplane.x - obstacle.x;
         const dy = airplane.y - obstacle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < (AIRPLANE_SIZE + OBSTACLE_SIZE) / 2) {
           setGameOver(true);
+          return;
         }
         
-        return obstacle.y < canvas.height + OBSTACLE_SIZE;
+        // Draw obstacle
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(obstacle.x, obstacle.y, OBSTACLE_SIZE / 2, 0, Math.PI * 2);
+        ctx.fill();
       });
       
-      if (timestamp - lastObstacleTime > OBSTACLE_SPAWN_INTERVAL && newObstacles.length < MAX_OBSTACLES) {
-        const newPattern = generateObstaclePattern(newObstacles);
+      // Remove marked projectiles and obstacles
+      setProjectiles(prev => prev.filter((_, index) => !projectilesToRemove.has(index)));
+      setObstacles(prev => prev.filter((_, index) => !obstaclesToRemove.has(index)));
+      
+      // Spawn new obstacles
+      if (timestamp - lastObstacleTime > OBSTACLE_SPAWN_INTERVAL && obstacles.length < MAX_OBSTACLES) {
+        const newPattern = generateObstaclePattern(obstacles);
         if (newPattern) {
-          newObstacles.push(...newPattern);
+          setObstacles(prev => [...prev, ...newPattern]);
           lastObstacleTime = timestamp;
           setScore(prev => prev + 10);
         }
       }
-      
-      setProjectiles(updatedProjectiles);
-      setObstacles(newObstacles);
       
       animationFrameId = requestAnimationFrame(gameLoop);
     };
@@ -308,7 +328,6 @@ export default function Game() {
     return () => cancelAnimationFrame(animationFrameId);
   }, [airplane, obstacles, projectiles, gameOver]);
   
-  // Touch controls for mobile fallback
   const handlePointerMove = (e: React.PointerEvent) => {
     if (gameOver || (isMobile && hasOrientationPermission)) return;
     
@@ -358,18 +377,6 @@ export default function Game() {
   
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      {/* {!gameOver && ( */}
-      {/*   <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-center px-4 py-2 bg-black bg-opacity-50 rounded"> */}
-      {/*     {isMobile ? ( */}
-      {/*       hasOrientationPermission ?  */}
-      {/*         "Tilt device to move, tap to shoot" : */}
-      {/*         "Touch and drag to move, tap to shoot" */}
-      {/*     ) : ( */}
-      {/*       "Use Arrow Keys or A/D to move, Spacebar to shoot" */}
-      {/*     )} */}
-      {/*   </div> */}
-      {/* )} */}
-      
       <canvas
         ref={canvasRef}
         width={window.innerWidth}
