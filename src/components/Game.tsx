@@ -13,8 +13,8 @@ interface Projectile {
   speed: number;
 }
 
-const AIRPLANE_SIZE = 30; // размер препятсивй
-const OBSTACLE_SIZE = 30; // размер обьектов
+const AIRPLANE_SIZE = 40; // размер препятсивй
+const OBSTACLE_SIZE = 40; // размер обьектов
 const GAME_SPEED = 5; // скорость движения препятствий
 const OBSTACLE_SPAWN_INTERVAL = 1500; // интервал между появлением новых препятствий
 const PROJECTILE_SPEED = 7; // скорость снаряда
