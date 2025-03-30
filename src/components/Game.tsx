@@ -23,7 +23,8 @@ const TILT_SENSITIVITY = 1;
 const KEYBOARD_SPEED = 5;
 const MAX_OBSTACLES = 10;
 
-const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 2;
+// Increase minimum distance to prevent overlapping
+const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 3;
 const PATTERN_TYPES = ['single', 'cluster', 'diagonal', 'random'] as const;
 
 export default function Game() {
@@ -45,8 +46,26 @@ export default function Game() {
     return existingObstacles.some(obstacle => {
       const dx = obstacle.x - x;
       const dy = obstacle.y - y;
-      return Math.sqrt(dx * dx + dy * dy) < MIN_DISTANCE_BETWEEN_OBSTACLES;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      // Check if the new obstacle would overlap with any existing obstacle
+      return distance < MIN_DISTANCE_BETWEEN_OBSTACLES;
     });
+  };
+
+  const generateSafePosition = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
+    let attempts = 0;
+    const maxAttempts = 10;
+    
+    while (attempts < maxAttempts) {
+      const x = OBSTACLE_SIZE + Math.random() * (canvas.width - OBSTACLE_SIZE * 2);
+      const y = -OBSTACLE_SIZE - Math.random() * OBSTACLE_SIZE * 2;
+      
+      if (!isTooCloseToObstacles(x, y, existingObstacles)) {
+        return { x, y };
+      }
+      attempts++;
+    }
+    return null;
   };
 
   const generateObstaclePattern = (existingObstacles: GameObject[]) => {
@@ -56,73 +75,102 @@ export default function Game() {
     const patternType = PATTERN_TYPES[Math.floor(Math.random() * PATTERN_TYPES.length)];
     const newObstacles: GameObject[] = [];
 
-    const safeX = () => OBSTACLE_SIZE + Math.random() * (canvas.width - OBSTACLE_SIZE * 2);
-    const safeY = () => -OBSTACLE_SIZE - Math.random() * OBSTACLE_SIZE * 2;
-
     switch (patternType) {
-      case 'single':
-        newObstacles.push({
-          x: safeX(),
-          y: safeY(),
-          width: OBSTACLE_SIZE,
-          height: OBSTACLE_SIZE,
-        });
-        break;
-
-      case 'cluster':
-        const clusterCenter = { x: safeX(), y: safeY() };
-        const clusterSize = 2 + Math.floor(Math.random() * 2);
-        
-        for (let i = 0; i < clusterSize; i++) {
-          const angle = (Math.PI * 2 * i) / clusterSize;
-          const radius = OBSTACLE_SIZE * 1.5;
-          const x = clusterCenter.x + Math.cos(angle) * radius;
-          const y = clusterCenter.y + Math.sin(angle) * radius;
-          
-          if (x > OBSTACLE_SIZE && x < canvas.width - OBSTACLE_SIZE) {
-            newObstacles.push({
-              x,
-              y,
-              width: OBSTACLE_SIZE,
-              height: OBSTACLE_SIZE,
-            });
-          }
-        }
-        break;
-
-      case 'diagonal':
-        const startX = safeX();
-        const startY = safeY();
-        const direction = Math.random() > 0.5 ? 1 : -1;
-        
-        for (let i = 0; i < 3; i++) {
-          const x = startX + (direction * i * OBSTACLE_SIZE * 1.5);
-          if (x > OBSTACLE_SIZE && x < canvas.width - OBSTACLE_SIZE) {
-            newObstacles.push({
-              x,
-              y: startY + (i * OBSTACLE_SIZE * 1.5),
-              width: OBSTACLE_SIZE,
-              height: OBSTACLE_SIZE,
-            });
-          }
-        }
-        break;
-
-      case 'random':
-        const x = safeX();
-        const y = safeY();
-        if (!isTooCloseToObstacles(x, y, existingObstacles)) {
+      case 'single': {
+        const position = generateSafePosition(canvas, existingObstacles);
+        if (position) {
           newObstacles.push({
-            x,
-            y,
+            x: position.x,
+            y: position.y,
             width: OBSTACLE_SIZE,
             height: OBSTACLE_SIZE,
           });
         }
         break;
+      }
+
+      case 'cluster': {
+        const position = generateSafePosition(canvas, existingObstacles);
+        if (position) {
+          const clusterSize = 2;
+          newObstacles.push({
+            x: position.x,
+            y: position.y,
+            width: OBSTACLE_SIZE,
+            height: OBSTACLE_SIZE,
+          });
+
+          // Try to add satellites around the main obstacle
+          for (let i = 0; i < clusterSize; i++) {
+            const angle = (Math.PI * 2 * i) / clusterSize;
+            const radius = OBSTACLE_SIZE * 2.5; // Increased radius for better spacing
+            const satelliteX = position.x + Math.cos(angle) * radius;
+            const satelliteY = position.y + Math.sin(angle) * radius;
+
+            if (
+              satelliteX > OBSTACLE_SIZE &&
+              satelliteX < canvas.width - OBSTACLE_SIZE &&
+              !isTooCloseToObstacles(satelliteX, satelliteY, [...existingObstacles, ...newObstacles])
+            ) {
+              newObstacles.push({
+                x: satelliteX,
+                y: satelliteY,
+                width: OBSTACLE_SIZE,
+                height: OBSTACLE_SIZE,
+              });
+            }
+          }
+        }
+        break;
+      }
+
+      case 'diagonal': {
+        const position = generateSafePosition(canvas, existingObstacles);
+        if (position) {
+          const direction = Math.random() > 0.5 ? 1 : -1;
+          newObstacles.push({
+            x: position.x,
+            y: position.y,
+            width: OBSTACLE_SIZE,
+            height: OBSTACLE_SIZE,
+          });
+
+          for (let i = 1; i < 3; i++) {
+            const nextX = position.x + (direction * i * OBSTACLE_SIZE * 2.5);
+            const nextY = position.y + (i * OBSTACLE_SIZE * 2.5);
+
+            if (
+              nextX > OBSTACLE_SIZE &&
+              nextX < canvas.width - OBSTACLE_SIZE &&
+              !isTooCloseToObstacles(nextX, nextY, [...existingObstacles, ...newObstacles])
+            ) {
+              newObstacles.push({
+                x: nextX,
+                y: nextY,
+                width: OBSTACLE_SIZE,
+                height: OBSTACLE_SIZE,
+              });
+            }
+          }
+        }
+        break;
+      }
+
+      case 'random': {
+        const position = generateSafePosition(canvas, existingObstacles);
+        if (position) {
+          newObstacles.push({
+            x: position.x,
+            y: position.y,
+            width: OBSTACLE_SIZE,
+            height: OBSTACLE_SIZE,
+          });
+        }
+        break;
+      }
     }
 
-    return newObstacles;
+    return newObstacles.length > 0 ? newObstacles : null;
   };
 
   useEffect(() => {
