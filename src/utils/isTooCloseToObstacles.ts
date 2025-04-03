@@ -1,14 +1,14 @@
 import type { GameObject } from '../types/Game.ts'
 
-export const AIRPLANE_SIZE = 30;
+export const AIRPLANE_SIZE = 70;
 export const OBSTACLE_SIZE = 50;
-export const GAME_SPEED = 5;
-export const OBSTACLE_SPAWN_INTERVAL = 1500;
+export const GAME_SPEED = 4;
+export const OBSTACLE_SPAWN_INTERVAL = 1200;
 export const PROJECTILE_SPEED = 7;
 export const PROJECTILE_SIZE = 5;
 export const TILT_SENSITIVITY = 1;
 export const KEYBOARD_SPEED = 5;
-export const MAX_OBSTACLES = 10;
+export const MAX_OBSTACLES = 8;
 export const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 3;
 export const PATTERN_TYPES = ['single', 'cluster', 'diagonal', 'random'] as const;
 
