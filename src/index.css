@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-	overflow: hidden;
+canvas {
+ --angle: 45deg;
+background: linear-gradient(var(--angle), oklab(25% -0.009 -0.168), oklab(23.6% 0.079 -0.088))
 }
