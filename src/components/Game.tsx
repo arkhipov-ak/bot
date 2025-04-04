@@ -73,44 +73,7 @@ const Game: React.FC = () => {
     return () =>
       window.removeEventListener('deviceorientation', handleOrientation);
   }, [isMobile, hasOrientationPermission, gameOver]);
-
-  // Обработка клавиатуры для ПК
-  useEffect(() => {
-    if (isMobile || gameOver) return;
-
-    const handleKeyboard = (e: KeyboardEvent) => {
-      setAirplane(prev => {
-        let newX = prev.x;
-
-        switch (e.key) {
-          case 'ArrowLeft':
-          case 'a':
-            newX = Math.max(AIRPLANE_SIZE, prev.x - 5);
-            break;
-          case 'ArrowRight':
-          case 'd':
-            newX = Math.min(window.innerWidth - AIRPLANE_SIZE, prev.x + 5);
-            break;
-          case ' ':
-            setProjectiles((prev: any) => [
-              ...prev,
-              {
-                x: prev?.x,
-                y: prev?.y - AIRPLANE_SIZE,
-                speed: 7,
-              },
-            ]);
-            break;
-        }
-
-        return { ...prev, x: newX };
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyboard);
-    return () => window.removeEventListener('keydown', handleKeyboard);
-  }, [isMobile, gameOver]);
-
+  
   // Запрос разрешения ориентации при инициализации для мобильных
   useEffect(() => {
     if (isMobile) {
