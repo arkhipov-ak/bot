@@ -82,7 +82,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         // Если снаряд не попал в препятствие, отрисовываем его
         if (!projectilesToRemove.has(pIndex)) {
-          ctx.fillStyle = '#FFD700';
+          ctx.fillStyle = '#00ff00';
           ctx.beginPath();
           ctx.arc(projectile.x, projectile.y, PROJECTILE_SIZE, 0, Math.PI * 2);
           ctx.fill();
