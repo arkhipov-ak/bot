@@ -4,10 +4,15 @@ import { GameCanvas } from './GameCanvas';
 import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles.ts';
 
 const Game: React.FC = () => {
+  // Состояние для хранения текущего счета
   const [score, setScore] = useState(0);
+  // Состояние для отслеживания статуса игры (окончена или нет)
   const [gameOver, setGameOver] = useState(false);
+  // Состояние для проверки разрешения на доступ к данным об ориентации устройства
   const [hasOrientationPermission, setHasOrientationPermission] = useState(false);
+  // Состояние для определения, является ли устройство мобильным
   const [isMobile, setIsMobile] = useState(false);
+  // Состояние для хранения данных об игровом самолете
   const [airplane, setAirplane] = useState<GameObject>({
     type: '',
     x: window.innerWidth / 2,
@@ -15,9 +20,12 @@ const Game: React.FC = () => {
     width: AIRPLANE_SIZE,
     height: AIRPLANE_SIZE
   });
+  // Состояние для хранения списка препятствий
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
+  // Состояние для хранения списка снарядов
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
 
+  // Функция для проверки, является ли устройство мобильным
   const checkMobile = () => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   };
@@ -26,15 +34,14 @@ const Game: React.FC = () => {
     checkMobile();
   }, []);
 
+  // Функция для запроса разрешения на доступ к данным об ориентации устройства
   const requestOrientationPermission = async () => {
     if (!isMobile) {
       setHasOrientationPermission(true);
       return;
     }
 
-    if (
-      typeof DeviceOrientationEvent !== 'undefined'
-    ) {
+    if (typeof DeviceOrientationEvent !== 'undefined') {
       try {
         // @ts-ignore
         const permission = await DeviceOrientationEvent?.requestPermission();
@@ -48,17 +55,17 @@ const Game: React.FC = () => {
     }
   };
 
-  // Запрос разрешения ориентации при инициализации для мобильных устройств
   useEffect(() => {
     if (isMobile) {
+      // Запрашиваем разрешение на доступ к данным об ориентации при инициализации для мобильных устройств
       requestOrientationPermission();
     }
   }, [isMobile]);
 
-  // Обработка ориентации для мобильных устройств
   useEffect(() => {
     if (!isMobile || !hasOrientationPermission || gameOver) return;
 
+    // Функция для обработки изменений ориентации устройства
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.gamma === null) return;
 
@@ -72,11 +79,15 @@ const Game: React.FC = () => {
       }));
     };
 
+    // Добавляем слушатель события изменения ориентации
     window.addEventListener('deviceorientation', handleOrientation);
-    return () =>
+    return () => {
+      // Убираем слушатель при размонтировании компонента
       window.removeEventListener('deviceorientation', handleOrientation);
+    };
   }, [isMobile, hasOrientationPermission, gameOver]);
 
+  // Функция для перезапуска игры
   const handleRestart = () => {
     setGameOver(false);
     setScore(0);
@@ -90,6 +101,7 @@ const Game: React.FC = () => {
       height: AIRPLANE_SIZE
     });
     if (isMobile) {
+      // Запрашиваем разрешение на доступ к данным об ориентации при перезапуске игры на мобильных устройствах
       requestOrientationPermission();
     }
   };
