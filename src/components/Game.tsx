@@ -99,7 +99,7 @@ const Game: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      {hasOrientationPermission === null ? (
+      {!hasOrientationPermission ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <TailSpin color="#ffffff" height={80} width={80} />
         </div>
