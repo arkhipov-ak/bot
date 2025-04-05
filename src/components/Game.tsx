@@ -1,8 +1,9 @@
 // Game.tsx
 import React, { useEffect, useState } from 'react';
-import { GameObject, Projectile } from '../types/Game.ts';
+import { GameObject, Projectile } from '../types/Game';
 import { GameCanvas } from './GameCanvas';
-import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles.ts';
+import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles';
+import { TailSpin } from 'react-loader-spinner';
 
 const Game: React.FC = () => {
   const [score, setScore] = useState(0);
@@ -14,7 +15,7 @@ const Game: React.FC = () => {
     x: window.innerWidth / 2,
     y: window.innerHeight - 100,
     width: AIRPLANE_SIZE,
-    height: AIRPLANE_SIZE
+    height: AIRPLANE_SIZE,
   });
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
@@ -36,11 +37,11 @@ const Game: React.FC = () => {
     if (
       typeof DeviceOrientationEvent !== 'undefined' &&
       // @ts-ignore
-      typeof DeviceOrientationEvent?.requestPermission === 'function'
+      typeof DeviceOrientationEvent.requestPermission === 'function'
     ) {
       try {
         // @ts-ignore
-        const permission = await DeviceOrientationEvent?.requestPermission();
+        const permission = await DeviceOrientationEvent.requestPermission();
         setHasOrientationPermission(permission === 'granted');
       } catch (err) {
         console.error('Ошибка запроса разрешения ориентации:', err);
@@ -66,7 +67,7 @@ const Game: React.FC = () => {
       if (event.gamma === null) return;
 
       const tilt = event.gamma;
-      setAirplane(prev => ({
+      setAirplane((prev) => ({
         ...prev,
         x: Math.max(
           AIRPLANE_SIZE,
@@ -76,8 +77,7 @@ const Game: React.FC = () => {
     };
 
     window.addEventListener('deviceorientation', handleOrientation);
-    return () =>
-      window.removeEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
   }, [isMobile, hasOrientationPermission, gameOver]);
 
   const handleRestart = () => {
@@ -90,7 +90,7 @@ const Game: React.FC = () => {
       x: window.innerWidth / 2,
       y: window.innerHeight - 100,
       width: AIRPLANE_SIZE,
-      height: AIRPLANE_SIZE
+      height: AIRPLANE_SIZE,
     });
     if (isMobile) {
       requestOrientationPermission();
@@ -99,35 +99,52 @@ const Game: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      <GameCanvas
-        airplane={airplane}
-        obstacles={obstacles}
-        projectiles={projectiles}
-        gameOver={gameOver}
-        setAirplane={setAirplane}
-        setObstacles={setObstacles}
-        setProjectiles={setProjectiles}
-        setScore={setScore}
-        setGameOver={setGameOver}
-      />
-
-      <div className="absolute top-16 left-[50%] text-white text-4xl font-bold -translate-x-1/2">
-        {score}
-      </div>
-
-      {gameOver && (
+      {isMobile && !hasOrientationPermission ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-8 rounded-lg text-center">
-            <h2 className="text-2xl font-bold mb-4">Игра окончена!</h2>
-            <p className="text-xl mb-4">Счёт: {score}</p>
-            <button
-              onClick={handleRestart}
-              className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
-            >
-              Начать заново
-            </button>
-          </div>
+          <TailSpin
+            height="80"
+            width="80"
+            color="#00BFFF"
+            ariaLabel="tail-spin-loading"
+            radius="1"
+            wrapperStyle={{}}
+            wrapperClass=""
+            visible={true}
+          />
         </div>
+      ) : (
+        <>
+          <GameCanvas
+            airplane={airplane}
+            obstacles={obstacles}
+            projectiles={projectiles}
+            gameOver={gameOver}
+            setAirplane={setAirplane}
+            setObstacles={setObstacles}
+            setProjectiles={setProjectiles}
+            setScore={setScore}
+            setGameOver={setGameOver}
+          />
+
+          <div className="absolute top-16 left-[50%] text-white text-4xl font-bold -translate-x-1/2">
+            {score}
+          </div>
+
+          {gameOver && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+              <div className="bg-white p-8 rounded-lg text-center">
+                <h2 className="text-2xl font-bold mb-4">Игра окончена!</h2>
+                <p className="text-xl mb-4">Счёт: {score}</p>
+                <button
+                  onClick={handleRestart}
+                  className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600"
+                >
+                  Начать заново
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
