@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { GameObject, Projectile } from '../types/Game.ts';
+import { GameObject, Projectile } from '../types/Game';
 import { GameCanvas } from './GameCanvas';
-import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles.ts';
+import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles';
 import { TailSpin } from 'react-loader-spinner'; // Импортируем компонент лоадера
 
 const Game: React.FC = () => {
@@ -58,22 +58,37 @@ const Game: React.FC = () => {
     }
   }, [isMobile, hasOrientationPermission]);
 
+  // Функция для разблокировки ориентации с использованием Telegram WebApp API
+  const unlockOrientation = () => {
+    if (window.Telegram?.WebApp) {
+      try {
+        // Разблокируем ориентацию с использованием Telegram API
+        window.Telegram.WebApp.unlockOrientation();
+        console.log('Ориентация устройства разблокирована!');
+      } catch (error) {
+        console.error('Ошибка при разблокировке ориентации:', error);
+      }
+    }
+  };
+
   // Обработка ориентации для мобильных устройств
   useEffect(() => {
     if (!isMobile || hasOrientationPermission === null || gameOver) return;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.gamma === null) return;
-
-      const tilt = event.gamma;
-      setAirplane(prev => ({
-        ...prev,
-        x: Math.max(
-          AIRPLANE_SIZE,
-          Math.min(window.innerWidth - AIRPLANE_SIZE, prev.x + tilt)
-        ),
-      }));
+      if (event.gamma !== null) {
+        const tilt = event.gamma;
+        setAirplane(prev => ({
+          ...prev,
+          x: Math.max(
+            AIRPLANE_SIZE,
+            Math.min(window.innerWidth - AIRPLANE_SIZE, prev.x + tilt)
+          ),
+        }));
+      }
     };
+
+    unlockOrientation();
 
     window.addEventListener('deviceorientation', handleOrientation);
     return () =>
