@@ -178,11 +178,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
   return newObstacles.length > 0 ? newObstacles : null;
 };
 
-/**
- * Генерация красного объекта (dodgable) с гарантией отсутствия наложения на другие объекты.
- */
 export const generateDodgeableObstacle = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
-  // Явно передаём размеры нового объекта для корректной проверки
   const position = generateSafePosition(canvas, existingObstacles, OBSTACLE_SIZE, OBSTACLE_SIZE);
   if (position) {
     return {
