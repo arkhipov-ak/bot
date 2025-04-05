@@ -22,12 +22,6 @@ const Game: React.FC = () => {
   const checkMobile = () => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   };
-  
-  useEffect(() => {
-    if(!isMobile) {
-      window.Telegram.WebApp.lockOrientation();
-    }
-  }, [isMobile])
 
   const handleRestart = () => {
     setGameOver(false);
@@ -41,10 +35,59 @@ const Game: React.FC = () => {
       width: AIRPLANE_SIZE,
       height: AIRPLANE_SIZE
     });
-    // if (isMobile) {
-    //   requestOrientationPermission();
-    // }
+    if (isMobile) {
+      requestOrientationPermission();
+    }
   };
+
+  const requestOrientationPermission = () => {
+    if (window.DeviceOrientationEvent) {
+      // Запрашиваем доступ к ориентации устройства
+      // @ts-ignore
+      DeviceOrientationEvent.requestPermission?.()
+        .then((response: any) => {
+          if (response === 'granted') {
+            setHasOrientationPermission(true);
+          } else {
+            setHasOrientationPermission(false);
+          }
+        })
+        .catch(() => {
+          setHasOrientationPermission(false);
+        });
+    } else {
+      setHasOrientationPermission(true); // Если разрешение не нужно (например, на десктопе)
+    }
+  };
+
+  useEffect(() => {
+    checkMobile();
+    if (isMobile) {
+      requestOrientationPermission();
+    }
+  }, [isMobile]);
+
+  // Функция для обработки наклона устройства
+  const handleDeviceOrientation = (event: DeviceOrientationEvent) => {
+    if (hasOrientationPermission) {
+      const xTilt = event.beta; // Наклон по оси X (в градусах)
+
+      setAirplane((prev) => ({
+        ...prev,
+        x: prev.x + (xTilt || 0) * 2, // Умножаем наклон для ускорения
+      }));
+    }
+  };
+
+  useEffect(() => {
+    if (hasOrientationPermission && window.DeviceOrientationEvent) {
+      window.addEventListener('deviceorientation', handleDeviceOrientation);
+
+      return () => {
+        window.removeEventListener('deviceorientation', handleDeviceOrientation);
+      };
+    }
+  }, [hasOrientationPermission]);
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">

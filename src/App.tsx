@@ -16,6 +16,7 @@ class App extends React.Component {
 			if (!tg) return;
 			tg.disableVerticalSwipes();
 			tg.requestFullscreen?.();
+			tg.lockOrientation();
 			tg.expand();
 			tg.ready?.();
 		} catch (err) {
