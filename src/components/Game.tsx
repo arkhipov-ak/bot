@@ -1,21 +1,20 @@
-// Game.tsx
 import React, { useEffect, useState } from 'react';
-import { GameObject, Projectile } from '../types/Game';
+import { GameObject, Projectile } from '../types/Game.ts';
 import { GameCanvas } from './GameCanvas';
-import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles';
-import { TailSpin } from 'react-loader-spinner';
+import { AIRPLANE_SIZE } from '../utils/isTooCloseToObstacles.ts';
+import { TailSpin } from 'react-loader-spinner'; // Импортируем компонент лоадера
 
 const Game: React.FC = () => {
   const [score, setScore] = useState(0);
   const [gameOver, setGameOver] = useState(false);
-  const [hasOrientationPermission, setHasOrientationPermission] = useState(false);
+  const [hasOrientationPermission, setHasOrientationPermission] = useState<boolean | null>(null); // Инициализируем как null
   const [isMobile, setIsMobile] = useState(false);
   const [airplane, setAirplane] = useState<GameObject>({
     type: '',
     x: window.innerWidth / 2,
     y: window.innerHeight - 100,
     width: AIRPLANE_SIZE,
-    height: AIRPLANE_SIZE,
+    height: AIRPLANE_SIZE
   });
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
@@ -26,7 +25,9 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     checkMobile();
-  }, []);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [navigator]);
 
   const requestOrientationPermission = async () => {
     if (!isMobile) {
@@ -35,9 +36,7 @@ const Game: React.FC = () => {
     }
 
     if (
-      typeof DeviceOrientationEvent !== 'undefined' &&
-      // @ts-ignore
-      typeof DeviceOrientationEvent.requestPermission === 'function'
+      typeof DeviceOrientationEvent !== 'undefined'
     ) {
       try {
         // @ts-ignore
@@ -54,20 +53,20 @@ const Game: React.FC = () => {
 
   // Запрос разрешения ориентации при инициализации для мобильных устройств
   useEffect(() => {
-    if (isMobile) {
+    if (isMobile && hasOrientationPermission === null) {
       requestOrientationPermission();
     }
-  }, [isMobile]);
+  }, [isMobile, hasOrientationPermission]);
 
   // Обработка ориентации для мобильных устройств
   useEffect(() => {
-    if (!isMobile || !hasOrientationPermission || gameOver) return;
+    if (!isMobile || hasOrientationPermission === null || gameOver) return;
 
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.gamma === null) return;
 
       const tilt = event.gamma;
-      setAirplane((prev) => ({
+      setAirplane(prev => ({
         ...prev,
         x: Math.max(
           AIRPLANE_SIZE,
@@ -77,7 +76,8 @@ const Game: React.FC = () => {
     };
 
     window.addEventListener('deviceorientation', handleOrientation);
-    return () => window.removeEventListener('deviceorientation', handleOrientation);
+    return () =>
+      window.removeEventListener('deviceorientation', handleOrientation);
   }, [isMobile, hasOrientationPermission, gameOver]);
 
   const handleRestart = () => {
@@ -90,7 +90,7 @@ const Game: React.FC = () => {
       x: window.innerWidth / 2,
       y: window.innerHeight - 100,
       width: AIRPLANE_SIZE,
-      height: AIRPLANE_SIZE,
+      height: AIRPLANE_SIZE
     });
     if (isMobile) {
       requestOrientationPermission();
@@ -99,18 +99,9 @@ const Game: React.FC = () => {
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      {isMobile && !hasOrientationPermission ? (
+      {hasOrientationPermission === null ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <TailSpin
-            height="80"
-            width="80"
-            color="#00BFFF"
-            ariaLabel="tail-spin-loading"
-            radius="1"
-            wrapperStyle={{}}
-            wrapperClass=""
-            visible={true}
-          />
+          <TailSpin color="#ffffff" height={80} width={80} />
         </div>
       ) : (
         <>
