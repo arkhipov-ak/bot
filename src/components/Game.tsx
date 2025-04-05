@@ -22,78 +22,84 @@ const Game: React.FC = () => {
   const checkMobile = () => {
     setIsMobile(/iPhone|iPad|iPod|Android/i.test(navigator.userAgent));
   };
-
+  
   useEffect(() => {
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, [navigator]);
-
-  const requestOrientationPermission = async () => {
-    if (!isMobile) {
-      setHasOrientationPermission(true);
-      return;
+    if(!isMobile) {
+      window.Telegram.WebApp.unlockOrientation();
     }
+  }, [isMobile])
 
-    if (
-      typeof DeviceOrientationEvent !== 'undefined'
-    ) {
-      try {
-        // @ts-ignore
-        const permission = await DeviceOrientationEvent.requestPermission();
-        setHasOrientationPermission(permission === 'granted');
-      } catch (err) {
-        console.error('Ошибка запроса разрешения ориентации:', err);
-        setHasOrientationPermission(false);
-      }
-    } else {
-      setHasOrientationPermission(true);
-    }
-  };
-
-  // Запрос разрешения ориентации при инициализации для мобильных устройств
-  useEffect(() => {
-    if (isMobile && hasOrientationPermission === null) {
-      requestOrientationPermission();
-    }
-  }, [isMobile, hasOrientationPermission]);
-
-  // Функция для разблокировки ориентации с использованием Telegram WebApp API
-  const unlockOrientation = () => {
-    if (window.Telegram?.WebApp) {
-      try {
-        // Разблокируем ориентацию с использованием Telegram API
-        window.Telegram.WebApp.unlockOrientation();
-        console.log('Ориентация устройства разблокирована!');
-      } catch (error) {
-        console.error('Ошибка при разблокировке ориентации:', error);
-      }
-    }
-  };
-
-  // Обработка ориентации для мобильных устройств
-  useEffect(() => {
-    if (!isMobile || hasOrientationPermission === null || gameOver) return;
-
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.gamma !== null) {
-        const tilt = event.gamma;
-        setAirplane(prev => ({
-          ...prev,
-          x: Math.max(
-            AIRPLANE_SIZE,
-            Math.min(window.innerWidth - AIRPLANE_SIZE, prev.x + tilt)
-          ),
-        }));
-      }
-    };
-
-    unlockOrientation();
-
-    window.addEventListener('deviceorientation', handleOrientation);
-    return () =>
-      window.removeEventListener('deviceorientation', handleOrientation);
-  }, [isMobile, hasOrientationPermission, gameOver]);
+  // useEffect(() => {
+  //   checkMobile();
+  //   window.addEventListener('resize', checkMobile);
+  //   return () => window.removeEventListener('resize', checkMobile);
+  // }, [navigator]);
+  //
+  // const requestOrientationPermission = async () => {
+  //   if (!isMobile) {
+  //     setHasOrientationPermission(true);
+  //     return;
+  //   }
+  //
+  //   if (
+  //     typeof DeviceOrientationEvent !== 'undefined'
+  //   ) {
+  //     try {
+  //       // @ts-ignore
+  //       const permission = await DeviceOrientationEvent.requestPermission();
+  //       setHasOrientationPermission(permission === 'granted');
+  //     } catch (err) {
+  //       console.error('Ошибка запроса разрешения ориентации:', err);
+  //       setHasOrientationPermission(false);
+  //     }
+  //   } else {
+  //     setHasOrientationPermission(true);
+  //   }
+  // };
+  //
+  // // Запрос разрешения ориентации при инициализации для мобильных устройств
+  // useEffect(() => {
+  //   if (isMobile && hasOrientationPermission === null) {
+  //     requestOrientationPermission();
+  //   }
+  // }, [isMobile, hasOrientationPermission]);
+  //
+  // // Функция для разблокировки ориентации с использованием Telegram WebApp API
+  // const unlockOrientation = () => {
+  //   if (window.Telegram?.WebApp) {
+  //     try {
+  //       // Разблокируем ориентацию с использованием Telegram API
+  //       window.Telegram.WebApp.unlockOrientation();
+  //       console.log('Ориентация устройства разблокирована!');
+  //     } catch (error) {
+  //       console.error('Ошибка при разблокировке ориентации:', error);
+  //     }
+  //   }
+  // };
+  //
+  // // Обработка ориентации для мобильных устройств
+  // useEffect(() => {
+  //   if (!isMobile || hasOrientationPermission === null || gameOver) return;
+  //
+  //   const handleOrientation = (event: DeviceOrientationEvent) => {
+  //     if (event.gamma !== null) {
+  //       const tilt = event.gamma;
+  //       setAirplane(prev => ({
+  //         ...prev,
+  //         x: Math.max(
+  //           AIRPLANE_SIZE,
+  //           Math.min(window.innerWidth - AIRPLANE_SIZE, prev.x + tilt)
+  //         ),
+  //       }));
+  //     }
+  //   };
+  //
+  //   unlockOrientation();
+  //
+  //   window.addEventListener('deviceorientation', handleOrientation);
+  //   return () =>
+  //     window.removeEventListener('deviceorientation', handleOrientation);
+  // }, [isMobile, hasOrientationPermission, gameOver]);
 
   const handleRestart = () => {
     setGameOver(false);
@@ -107,14 +113,14 @@ const Game: React.FC = () => {
       width: AIRPLANE_SIZE,
       height: AIRPLANE_SIZE
     });
-    if (isMobile) {
-      requestOrientationPermission();
-    }
+    // if (isMobile) {
+    //   requestOrientationPermission();
+    // }
   };
 
   return (
     <div className="relative w-full h-screen bg-gradient-to-b from-blue-900 to-blue-700">
-      {!hasOrientationPermission ? (
+      {!hasOrientationPermission && isMobile ? (
         <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <TailSpin color="#ffffff" height={80} width={80} />
         </div>
