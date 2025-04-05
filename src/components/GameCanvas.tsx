@@ -1,16 +1,18 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { GameObject, Projectile } from '../types/Game.ts';
-import { drawAirplane } from '../utils/drawAirplane.ts';
-import { drawMeteor } from '../utils/drawMeteor.ts';
+import { Airplane } from '../utils/drawAirplane.ts'
+import { Meteor } from '../utils/drawMeteor.ts'
 import {
   AIRPLANE_SIZE,
   OBSTACLE_SIZE,
   GAME_SPEED,
   OBSTACLE_SPAWN_INTERVAL,
+  DODGE_OBSTACLE_SPAWN_INTERVAL,
   PROJECTILE_SPEED,
   PROJECTILE_SIZE,
   MAX_OBSTACLES,
   generateObstaclePattern,
+  generateDodgeableObstacle,
 } from '../utils/isTooCloseToObstacles.ts';
 
 interface GameCanvasProps {
@@ -37,9 +39,9 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
   setGameOver,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [lastDodgeableTime, setLastDodgeableTime] = useState(0);
 
   useEffect(() => {
-    // Если игра закончена, прекращаем анимацию
     if (gameOver) return;
     
     const canvas = canvasRef.current;
@@ -51,36 +53,33 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     let animationFrameId: number;
     let lastObstacleTime = 0;
 
-    // Функция для обновления и отрисовки снарядов
+    const obstaclesToRemove = new Set<number>();
+
     const updateProjectiles = () => {
       const projectilesToRemove = new Set<number>();
 
       projectiles.forEach((projectile, pIndex) => {
-        // Обновляем позицию снаряда, двигая его вверх
         projectile.y -= projectile.speed;
 
-        // Если снаряд ушёл за нижнюю — удаляем его
         if (projectile.y < 0) {
           projectilesToRemove.add(pIndex);
           return;
         }
         
-        // Проверка столкновений с препятствиями
         obstacles.forEach((obstacle, oIndex) => {
           const dx = projectile.x - obstacle.x;
           const dy = projectile.y - obstacle.y;
           const distance = Math.sqrt(dx * dx + dy * dy);
           
-          // Если расстояние меньше суммы радиусов — фиксируем столкновение
           if (distance < (PROJECTILE_SIZE + OBSTACLE_SIZE / 2)) {
             projectilesToRemove.add(pIndex);
-            // Отмечаем препятствие для удаления и начисляем очки
-            obstaclesToRemove.add(oIndex);
-            setScore(prev => prev + 20);
+            if (obstacle.type === 'meteor') {
+              obstaclesToRemove.add(oIndex);
+              setScore(prev => prev + 20);
+            }
           }
         });
 
-        // Если снаряд не попал в препятствие, отрисовываем его
         if (!projectilesToRemove.has(pIndex)) {
           ctx.fillStyle = '#00ff00';
           ctx.beginPath();
@@ -89,55 +88,58 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       });
 
-      // Обновляем состояние снарядов: удаляем те, что помечены
       setProjectiles(prev => prev.filter((_, index) => !projectilesToRemove.has(index)));
     };
 
-    const obstaclesToRemove = new Set<number>();
-
-    // Функция для обновления и отрисовки препятствий
     const updateObstacles = () => {
       obstacles.forEach((obstacle, index) => {
-        // Если препятствие уже отмечено для удаления, пропускаем
         if (obstaclesToRemove.has(index)) return;
         
-        // Двигаем препятствие вниз
         obstacle.y += GAME_SPEED;
         
-        // Если препятствие вышло за нижнюю границу, отмечаем для удаления
         if (obstacle.y > canvas.height + OBSTACLE_SIZE) {
           obstaclesToRemove.add(index);
           return;
         }
         
-        // Проверка столкновения с самолётом
         const dx = airplane.x - obstacle.x;
         const dy = airplane.y - obstacle.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
         
         if (distance < (AIRPLANE_SIZE + OBSTACLE_SIZE) / 2) {
-          // Если столкновение произошло — игра окончена
           setGameOver(true);
           return;
         }
         
-        // Отрисовка препятствия (метеорита)
-        drawMeteor(ctx, obstacle.x, obstacle.y, OBSTACLE_SIZE);
+        if (obstacle.type === 'dodgable') {
+          const meteor = new Meteor(obstacle.x, obstacle.y, OBSTACLE_SIZE, 'dodgable');
+          meteor.draw(ctx);
+        } else {
+          const meteor = new Meteor(obstacle.x, obstacle.y, OBSTACLE_SIZE);
+          meteor.draw(ctx);
+        }
       });
       
-      // Обновляем состояние препятствий: удаляем отмеченные
       setObstacles(prev => prev.filter((_, index) => !obstaclesToRemove.has(index)));
     };
 
-    // Функция для создания новых препятствий, если прошло достаточно времени
     const spawnObstacles = (timestamp: number) => {
       if (timestamp - lastObstacleTime > OBSTACLE_SPAWN_INTERVAL && obstacles.length < MAX_OBSTACLES) {
         const newPattern = generateObstaclePattern(canvas, obstacles);
         if (newPattern) {
-          // Добавляем новые препятствия и начисляем очки
           setObstacles(prev => [...prev, ...newPattern]);
           lastObstacleTime = timestamp;
           setScore(prev => prev + 10);
+        }
+      }
+    };
+
+    const spawnDodgeableObstacle = (timestamp: number) => {
+      if (timestamp - lastDodgeableTime > DODGE_OBSTACLE_SPAWN_INTERVAL && obstacles.length < MAX_OBSTACLES) {
+        const newDodgeable = generateDodgeableObstacle(canvas, obstacles);
+        if (newDodgeable) {
+          setObstacles(prev => [...prev, newDodgeable]);
+          setLastDodgeableTime(timestamp);
         }
       }
     };
@@ -146,26 +148,22 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       if (!canvas || !ctx) return;
       
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      drawAirplane(ctx, airplane.x, airplane.y, AIRPLANE_SIZE);
       
-      // Обновляем снаряды и препятствия
+      const plane = new Airplane(airplane.x, airplane.y, AIRPLANE_SIZE);
+      plane.draw(ctx);
+      
       updateProjectiles();
       updateObstacles();
-
-      // Проверяем, нужно ли заспавнить новые препятствия
       spawnObstacles(timestamp);
+      spawnDodgeableObstacle(timestamp);
       
-      // Запрашиваем следующий кадр анимации
       animationFrameId = requestAnimationFrame(gameLoop);
     };
     
-    // Запуск игрового цикла
     animationFrameId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [airplane, obstacles, projectiles, gameOver, setObstacles, setProjectiles, setScore, setGameOver]);
+  }, [airplane, obstacles, projectiles, gameOver, setObstacles, setProjectiles, setScore, setGameOver, lastDodgeableTime]);
 
-  // Обработчик перемещения указателя для управления положением самолёта
   const handlePointerMove = (e: React.PointerEvent) => {
     if (gameOver) return;
     
@@ -175,18 +173,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     
-    // Обновляем положение самолёта с ограничением по границам канвы
     setAirplane(prev => ({
       ...prev,
       x: Math.max(AIRPLANE_SIZE, Math.min(canvas.width - AIRPLANE_SIZE, x)),
     }));
   };
 
-  // Обработчик клика для стрельбы снарядами
   const handleClick = () => {
     if (gameOver) return;
     
-    // Добавляем новый снаряд, стартующий из текущей позиции самолёта
     setProjectiles(prev => [
       ...prev,
       {

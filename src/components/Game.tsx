@@ -10,10 +10,11 @@ const Game: React.FC = () => {
   const [hasOrientationPermission, setHasOrientationPermission] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [airplane, setAirplane] = useState<GameObject>({
+    type: '',
     x: window.innerWidth / 2,
     y: window.innerHeight - 100,
     width: AIRPLANE_SIZE,
-    height: AIRPLANE_SIZE,
+    height: AIRPLANE_SIZE
   });
   const [obstacles, setObstacles] = useState<GameObject[]>([]);
   const [projectiles, setProjectiles] = useState<Projectile[]>([]);
@@ -24,24 +25,22 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   const requestOrientationPermission = async () => {
     if (!isMobile) {
-      setHasOrientationPermission(false);
+      setHasOrientationPermission(true);
       return;
     }
 
     if (
       typeof DeviceOrientationEvent !== 'undefined' &&
-      // @ts-ignore:
-      typeof DeviceOrientationEvent.requestPermission === 'function'
+      // @ts-ignore
+      typeof DeviceOrientationEvent?.requestPermission === 'function'
     ) {
       try {
         // @ts-ignore
-        const permission = await DeviceOrientationEvent.requestPermission();
+        const permission = await DeviceOrientationEvent?.requestPermission();
         setHasOrientationPermission(permission === 'granted');
       } catch (err) {
         console.error('Ошибка запроса разрешения ориентации:', err);
@@ -51,6 +50,13 @@ const Game: React.FC = () => {
       setHasOrientationPermission(true);
     }
   };
+
+  // Запрос разрешения ориентации при инициализации для мобильных устройств
+  useEffect(() => {
+    if (isMobile) {
+      requestOrientationPermission();
+    }
+  }, [isMobile]);
 
   // Обработка ориентации для мобильных устройств
   useEffect(() => {
@@ -73,13 +79,6 @@ const Game: React.FC = () => {
     return () =>
       window.removeEventListener('deviceorientation', handleOrientation);
   }, [isMobile, hasOrientationPermission, gameOver]);
-  
-  // Запрос разрешения ориентации при инициализации для мобильных
-  useEffect(() => {
-    if (isMobile) {
-      requestOrientationPermission();
-    }
-  }, [isMobile]);
 
   const handleRestart = () => {
     setGameOver(false);
@@ -87,10 +86,11 @@ const Game: React.FC = () => {
     setObstacles([]);
     setProjectiles([]);
     setAirplane({
+      type: '',
       x: window.innerWidth / 2,
       y: window.innerHeight - 100,
       width: AIRPLANE_SIZE,
-      height: AIRPLANE_SIZE,
+      height: AIRPLANE_SIZE
     });
     if (isMobile) {
       requestOrientationPermission();

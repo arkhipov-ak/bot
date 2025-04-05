@@ -3,6 +3,7 @@ export interface GameObject {
   y: number;
   width: number;
   height: number;
+  type: string
 }
 
 export interface Projectile {

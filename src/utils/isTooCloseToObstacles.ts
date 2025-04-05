@@ -4,30 +4,46 @@ export const AIRPLANE_SIZE = 70;
 export const OBSTACLE_SIZE = 50;
 export const GAME_SPEED = 4;
 export const OBSTACLE_SPAWN_INTERVAL = 1200;
+export const DODGE_OBSTACLE_SPAWN_INTERVAL = 3000; // интервал для красных объектов
 export const PROJECTILE_SPEED = 7;
 export const PROJECTILE_SIZE = 5;
-export const TILT_SENSITIVITY = 1;
-export const KEYBOARD_SPEED = 5;
 export const MAX_OBSTACLES = 8;
-export const MIN_DISTANCE_BETWEEN_OBSTACLES = OBSTACLE_SIZE * 3;
 export const PATTERN_TYPES = ['single', 'cluster', 'diagonal', 'random'] as const;
 
-export const isTooCloseToObstacles = (
+/**
+ * Проверка пересечения двух прямоугольников.
+ * Координаты (x, y) считаются центром прямоугольника.
+ */
+export const isOverlappingRect = (
   x: number,
   y: number,
-  existingObstacles: GameObject[]
+  w: number,
+  h: number,
+  obstacle: GameObject
 ) => {
-  return existingObstacles.some(obstacle => {
-    const dx = obstacle.x - x;
-    const dy = obstacle.y - y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    return distance < MIN_DISTANCE_BETWEEN_OBSTACLES;
-  });
+  const left1 = x - w / 2;
+  const right1 = x + w / 2;
+  const top1 = y - h / 2;
+  const bottom1 = y + h / 2;
+
+  const left2 = obstacle.x - obstacle.width / 2;
+  const right2 = obstacle.x + obstacle.width / 2;
+  const top2 = obstacle.y - obstacle.height / 2;
+  const bottom2 = obstacle.y + obstacle.height / 2;
+
+  return !(right1 < left2 || left1 > right2 || bottom1 < top2 || top1 > bottom2);
 };
 
+/**
+ * Генерация безопасной позиции для нового объекта так, чтобы его прямоугольник не пересекался
+ * с прямоугольниками уже существующих объектов.
+ * Принимает размеры нового объекта (по умолчанию OBSTACLE_SIZE).
+ */
 export const generateSafePosition = (
   canvas: HTMLCanvasElement,
-  existingObstacles: GameObject[]
+  existingObstacles: GameObject[],
+  objectWidth: number = OBSTACLE_SIZE,
+  objectHeight: number = OBSTACLE_SIZE
 ) => {
   let attempts = 0;
   const maxAttempts = 10;
@@ -36,7 +52,11 @@ export const generateSafePosition = (
     const x = OBSTACLE_SIZE + Math.random() * (canvas.width - OBSTACLE_SIZE * 2);
     const y = -OBSTACLE_SIZE - Math.random() * OBSTACLE_SIZE * 2;
     
-    if (!isTooCloseToObstacles(x, y, existingObstacles)) {
+    const overlaps = existingObstacles.some(obstacle =>
+      isOverlappingRect(x, y, objectWidth, objectHeight, obstacle)
+    );
+    
+    if (!overlaps) {
       return { x, y };
     }
     attempts++;
@@ -44,6 +64,9 @@ export const generateSafePosition = (
   return null;
 };
 
+/**
+ * Генерация стандартных препятствий (метеоритов) с различными паттернами.
+ */
 export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
   const patternType = PATTERN_TYPES[Math.floor(Math.random() * PATTERN_TYPES.length)];
   const newObstacles: GameObject[] = [];
@@ -57,6 +80,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           y: position.y,
           width: OBSTACLE_SIZE,
           height: OBSTACLE_SIZE,
+          type: 'meteor',
         });
       }
       break;
@@ -71,6 +95,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           y: position.y,
           width: OBSTACLE_SIZE,
           height: OBSTACLE_SIZE,
+          type: 'meteor',
         });
 
         for (let i = 0; i < clusterSize; i++) {
@@ -82,13 +107,16 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           if (
             satelliteX > OBSTACLE_SIZE &&
             satelliteX < canvas.width - OBSTACLE_SIZE &&
-            !isTooCloseToObstacles(satelliteX, satelliteY, [...existingObstacles, ...newObstacles])
+            !existingObstacles.concat(newObstacles).some(obstacle =>
+              isOverlappingRect(satelliteX, satelliteY, OBSTACLE_SIZE, OBSTACLE_SIZE, obstacle)
+            )
           ) {
             newObstacles.push({
               x: satelliteX,
               y: satelliteY,
               width: OBSTACLE_SIZE,
               height: OBSTACLE_SIZE,
+              type: 'meteor',
             });
           }
         }
@@ -105,6 +133,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           y: position.y,
           width: OBSTACLE_SIZE,
           height: OBSTACLE_SIZE,
+          type: 'meteor',
         });
 
         for (let i = 1; i < 3; i++) {
@@ -114,13 +143,16 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           if (
             nextX > OBSTACLE_SIZE &&
             nextX < canvas.width - OBSTACLE_SIZE &&
-            !isTooCloseToObstacles(nextX, nextY, [...existingObstacles, ...newObstacles])
+            !existingObstacles.concat(newObstacles).some(obstacle =>
+              isOverlappingRect(nextX, nextY, OBSTACLE_SIZE, OBSTACLE_SIZE, obstacle)
+            )
           ) {
             newObstacles.push({
               x: nextX,
               y: nextY,
               width: OBSTACLE_SIZE,
               height: OBSTACLE_SIZE,
+              type: 'meteor',
             });
           }
         }
@@ -136,6 +168,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
           y: position.y,
           width: OBSTACLE_SIZE,
           height: OBSTACLE_SIZE,
+          type: 'meteor',
         });
       }
       break;
@@ -143,4 +176,22 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
   }
 
   return newObstacles.length > 0 ? newObstacles : null;
+};
+
+/**
+ * Генерация красного объекта (dodgable) с гарантией отсутствия наложения на другие объекты.
+ */
+export const generateDodgeableObstacle = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
+  // Явно передаём размеры нового объекта для корректной проверки
+  const position = generateSafePosition(canvas, existingObstacles, OBSTACLE_SIZE, OBSTACLE_SIZE);
+  if (position) {
+    return {
+      x: position.x,
+      y: position.y,
+      width: OBSTACLE_SIZE,
+      height: OBSTACLE_SIZE,
+      type: 'dodgable',
+    };
+  }
+  return null;
 };
