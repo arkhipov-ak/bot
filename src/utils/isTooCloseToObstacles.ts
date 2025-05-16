@@ -193,17 +193,3 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
 
   return newObstacles.length > 0 ? newObstacles : null;
 };
-
-export const generateDodgeableObstacle = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
-  const position = generateSafePosition(canvas, existingObstacles, OBSTACLE_SIZE, OBSTACLE_SIZE);
-  if (position) {
-    return {
-      x: position.x,
-      y: position.y,
-      width: OBSTACLE_SIZE,
-      height: OBSTACLE_SIZE,
-      type: 'dodgable',
-    };
-  }
-  return null;
-};

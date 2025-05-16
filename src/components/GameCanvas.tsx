@@ -40,7 +40,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [lastDodgeableTime, setLastDodgeableTime] = useState(0); // время последнего уклоняемого препятствия
-  const lastObstacleTime = useRef(0);                             // время последнего появления обычных препятствий
+  const lastObstacleTime = useRef(0); // время последнего появления обычных препятствий
 
   useEffect(() => {
     if (gameOver) return;
@@ -54,7 +54,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     let animationFrameId: number;
     const obstaclesToRemove = new Set<number>();
 
-    // Обновление состояния снарядов
+    // обновление  снарядов
     const updateProjectiles = () => {
       const projectilesToRemove = new Set<number>();
 
@@ -74,7 +74,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
           if (distance < (PROJECTILE_SIZE + OBSTACLE_SIZE / 2)) {
             projectilesToRemove.add(pIndex); // убираем снаряд, если он столкнулся с препятствием
             if (obstacle.type === 'meteor') {
-              obstaclesToRemove.add(oIndex); // убираем препятствие, если это метеор
+              obstaclesToRemove.add(oIndex); // убираем препятствие, если это метеорит
               setScore(prev => prev + 20);   // увеличиваем счет
             }
           }
@@ -135,7 +135,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       updateProjectiles(); // обновляем состояние снарядов
       updateObstacles();   // обновляем состояние препятствий
 
-      // 1) Генерим новые обычные препятствия, но не пушим сразу в state:
+      // созданые обычных меторитов
       let newPattern: GameObject[] = [];
       if (
         timestamp - lastObstacleTime.current > OBSTACLE_SPAWN_INTERVAL &&
@@ -149,7 +149,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
         }
       }
 
-      // 2) Генерим уклоняемое, проверяя позицию уже относительно obstacles + newPattern:
+      // создание красного меторита
       let newDodgeable: GameObject | null = null;
       if (
         timestamp - lastDodgeableTime > DODGE_OBSTACLE_SPAWN_INTERVAL &&
