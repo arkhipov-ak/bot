@@ -12,7 +12,7 @@ import {
   PROJECTILE_SIZE,
   MAX_OBSTACLES,
   generateObstaclePattern,
-  generateDodgeableObstacle,
+  generateSafePosition,
 } from '../utils/isTooCloseToObstacles.ts';
 
 interface GameCanvasProps {
@@ -40,6 +40,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [lastDodgeableTime, setLastDodgeableTime] = useState(0); // время последнего уклоняемого препятствия
+  const lastObstacleTime = useRef(0);                             // время последнего появления обычных препятствий
 
   useEffect(() => {
     if (gameOver) return;
@@ -51,8 +52,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     if (!ctx) return;
 
     let animationFrameId: number;
-    let lastObstacleTime = 0; // время последнего появления препятствия
-
     const obstaclesToRemove = new Set<number>();
 
     // Обновление состояния снарядов
@@ -76,7 +75,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
             projectilesToRemove.add(pIndex); // убираем снаряд, если он столкнулся с препятствием
             if (obstacle.type === 'meteor') {
               obstaclesToRemove.add(oIndex); // убираем препятствие, если это метеор
-              setScore(prev => prev + 20); // увеличиваем счет
+              setScore(prev => prev + 20);   // увеличиваем счет
             }
           }
         });
@@ -115,7 +114,7 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
 
         if (obstacle.type === 'dodgable') {
           const meteor = new Meteor(obstacle.x, obstacle.y, OBSTACLE_SIZE, 'dodgable');
-          meteor.draw(ctx); // отрисовываем красное препятствие
+          meteor.draw(ctx); // отрисовываем уклоняемое препятствие
         } else {
           const meteor = new Meteor(obstacle.x, obstacle.y, OBSTACLE_SIZE);
           meteor.draw(ctx); // отрисовываем обычное препятствие
@@ -123,29 +122,6 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       });
 
       setObstacles(prev => prev.filter((_, index) => !obstaclesToRemove.has(index))); // обновляем список препятствий
-    };
-
-    // спавн новых препятствий
-    const spawnObstacles = (timestamp: number) => {
-      if (timestamp - lastObstacleTime > OBSTACLE_SPAWN_INTERVAL && obstacles.length < MAX_OBSTACLES) {
-        const newPattern = generateObstaclePattern(canvas, obstacles);
-        if (newPattern) {
-          setObstacles(prev => [...prev, ...newPattern]); // Добавляем новые препятствия
-          lastObstacleTime = timestamp; // Обновляем время последнего появления препятствия
-          setScore(prev => prev + 10); // Увеличиваем счет
-        }
-      }
-    };
-
-    // спавна уклоняемых препятствий
-    const spawnDodgeableObstacle = (timestamp: number) => {
-      if (timestamp - lastDodgeableTime > DODGE_OBSTACLE_SPAWN_INTERVAL && obstacles.length < MAX_OBSTACLES) {
-        const newDodgeable = generateDodgeableObstacle(canvas, obstacles);
-        if (newDodgeable) {
-          setObstacles(prev => [...prev, newDodgeable]); // добавляем красное препятствие
-          setLastDodgeableTime(timestamp); // Обновляем время последнего уклоняемого препятствия
-        }
-      }
     };
 
     const gameLoop = (timestamp: number) => {
@@ -157,16 +133,67 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
       plane.draw(ctx);
 
       updateProjectiles(); // обновляем состояние снарядов
-      updateObstacles(); // обновляем состояние препятствий
-      spawnObstacles(timestamp); // спавн препятствий
-      spawnDodgeableObstacle(timestamp); // спавн красных препятствий
+      updateObstacles();   // обновляем состояние препятствий
 
-      animationFrameId = requestAnimationFrame(gameLoop);
+      // 1) Генерим новые обычные препятствия, но не пушим сразу в state:
+      let newPattern: GameObject[] = [];
+      if (
+        timestamp - lastObstacleTime.current > OBSTACLE_SPAWN_INTERVAL &&
+        obstacles.length < MAX_OBSTACLES
+      ) {
+        const pattern = generateObstaclePattern(canvas, obstacles);
+        if (pattern) {
+          newPattern = pattern;
+          lastObstacleTime.current = timestamp;   // Обновляем время последнего появления препятствия
+          setScore(prev => prev + 10);            // Увеличиваем счет
+        }
+      }
+
+      // 2) Генерим уклоняемое, проверяя позицию уже относительно obstacles + newPattern:
+      let newDodgeable: GameObject | null = null;
+      if (
+        timestamp - lastDodgeableTime > DODGE_OBSTACLE_SPAWN_INTERVAL &&
+        obstacles.length + newPattern.length < MAX_OBSTACLES
+      ) {
+        const combined = obstacles.concat(newPattern);
+        const pos = generateSafePosition(canvas, combined, OBSTACLE_SIZE, OBSTACLE_SIZE);
+        if (pos) {
+          newDodgeable = {
+            x: pos.x,
+            y: pos.y,
+            width: OBSTACLE_SIZE,
+            height: OBSTACLE_SIZE,
+            type: 'dodgable',
+          };
+          setLastDodgeableTime(timestamp); // Обновляем время последнего уклоняемого препятствия
+        }
+      }
+
+      // 3) Один раз обновляем obstacles — и обычные, и уклоняемое вместе:
+      if (newPattern.length || newDodgeable) {
+        setObstacles(prev => [
+          ...prev,
+          ...newPattern,
+          ...(newDodgeable ? [newDodgeable] : []),
+        ]);
+      }
+
+      animationFrameId = requestAnimationFrame(gameLoop); // вызов функции каждый кадр
     };
 
-    animationFrameId = requestAnimationFrame(gameLoop);  // вызов функции каждый кадр
+    animationFrameId = requestAnimationFrame(gameLoop);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [airplane, obstacles, projectiles, gameOver, setObstacles, setProjectiles, setScore, setGameOver, lastDodgeableTime]);
+  }, [
+    airplane,
+    obstacles,
+    projectiles,
+    gameOver,
+    setObstacles,
+    setProjectiles,
+    setScore,
+    setGameOver,
+    lastDodgeableTime,
+  ]);
 
   // движение мыши
   const handlePointerMove = (e: React.PointerEvent) => {
