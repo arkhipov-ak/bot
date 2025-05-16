@@ -15,7 +15,7 @@ class App extends React.Component {
 			const tg = window.Telegram?.WebApp;
 			if (!tg) return;
 			tg.disableVerticalSwipes();
-			tg.requestFullscreen?.();
+			tg.requestFullscreen();
 			tg.lockOrientation();
 			tg.expand();
 			tg.ready?.();

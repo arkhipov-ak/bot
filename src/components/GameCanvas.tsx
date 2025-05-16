@@ -169,18 +169,18 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     };
 
     animationFrameId = requestAnimationFrame(gameLoop); // Запускаем первый кадр
-    return () => cancelAnimationFrame(animationFrameId); // Очистка после завершения игры
+    return () => cancelAnimationFrame(animationFrameId); // чистка после завершения игры
   }, [airplane, obstacles, projectiles, gameOver, setObstacles, setProjectiles, setScore, setGameOver, lastDodgeableTime]);
 
-  // Обработчик движения указателя мыши (перетаскивание самолета)
+  // движение мыши
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (gameOver) return; // Если игра окончена, игнорируем движение
+    if (gameOver) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left; // Получаем координаты мыши по оси X
+    const x = e.clientX - rect.left; // Получаем координаты мыши по оси X, относительного левого края элемента
 
     setAirplane(prev => ({
       ...prev,
@@ -188,16 +188,15 @@ export const GameCanvas: React.FC<GameCanvasProps> = ({
     }));
   };
 
-  // Обработчик кликов (выстрел из самолета)
   const handleClick = () => {
-    if (gameOver) return; // Если игра окончена, игнорируем клик
+    if (gameOver) return;
 
     setProjectiles(prev => [
       ...prev,
       {
         x: airplane.x,
         y: airplane.y - AIRPLANE_SIZE,
-        speed: PROJECTILE_SPEED, // Добавляем новый снаряд
+        speed: PROJECTILE_SPEED,
       },
     ]);
   };
