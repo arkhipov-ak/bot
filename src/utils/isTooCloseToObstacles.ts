@@ -18,19 +18,19 @@ export const isOverlappingRect = (
   h: number,
   obstacle: GameObject
 ) => {
-  // Вычисляем границы первого обьекта
+  // границы первого обьекта
   const left1 = x - w / 2;
   const right1 = x + w / 2;
   const top1 = y - h / 2;
   const bottom1 = y + h / 2;
 
-  // Вычисляем границы второго обьекта
+  // границы второго обьекта
   const left2 = obstacle.x - obstacle.width / 2;
   const right2 = obstacle.x + obstacle.width / 2;
   const top2 = obstacle.y - obstacle.height / 2;
   const bottom2 = obstacle.y + obstacle.height / 2;
 
-  // Обьекты не пересекаются, если:
+  // не пересекаются, если:
   // правая сторона 1-го левее левой стороны 2-го
   // левая сторона 1-го правее правой стороны 2-го
   // нижняя сторона 1-го выше верхней стороны 2-го
@@ -74,7 +74,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
   const newObstacles: GameObject[] = [];
 
   switch (patternType) {
-    // Одиночное препятствие
+    // одиночное препятствие
     case 'single': {
       // Получаем безопасную позицию для нового препятствия
       const position = generateSafePosition(canvas, existingObstacles);
@@ -90,7 +90,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
       break;
     }
 
-    // Группа препятствий
+    // группа препятствий
     case 'cluster': {
       const position = generateSafePosition(canvas, existingObstacles);
       if (position) {
@@ -194,9 +194,7 @@ export const generateObstaclePattern = (canvas: HTMLCanvasElement, existingObsta
   return newObstacles.length > 0 ? newObstacles : null;
 };
 
-// красное препятствие(dodgable)
 export const generateDodgeableObstacle = (canvas: HTMLCanvasElement, existingObstacles: GameObject[]) => {
-  // Получаем безопасную позицию для нового препятствия
   const position = generateSafePosition(canvas, existingObstacles, OBSTACLE_SIZE, OBSTACLE_SIZE);
   if (position) {
     return {
@@ -207,6 +205,5 @@ export const generateDodgeableObstacle = (canvas: HTMLCanvasElement, existingObs
       type: 'dodgable',
     };
   }
-  // Если не удалось найти безопасную позицию, возвращаем null
   return null;
 };
